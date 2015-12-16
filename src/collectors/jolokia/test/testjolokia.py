@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # coding=utf-8
-################################################################################
+##########################################################################
 
 from test import CollectorTestCase
 from test import get_collector_config
@@ -12,10 +12,11 @@ from diamond.collector import Collector
 
 from jolokia import JolokiaCollector
 
-################################################################################
+##########################################################################
 
 
 class TestJolokiaCollector(CollectorTestCase):
+
     def setUp(self):
         config = get_collector_config('JolokiaCollector', {})
 
@@ -59,6 +60,12 @@ class TestJolokiaCollector(CollectorTestCase):
 
         rewritemetrics = self.get_metrics_rewrite_test()
         self.assertPublishedMany(publish_mock, rewritemetrics)
+
+    @patch.object(Collector, 'publish')
+    def test_should_work_with_real_data_and_basic_auth(self, publish_mock):
+        self.collector.config["username"] = "user"
+        self.collector.config["password"] = "password"
+        self.test_should_work_with_real_data()
 
     @patch.object(Collector, 'publish')
     def test_should_fail_gracefully(self, publish_mock):
@@ -153,6 +160,6 @@ class TestJolokiaCollector(CollectorTestCase):
             prefix + '.memUsedBeforeGc.Par_Survivor_Space.used': 414088
         }
 
-################################################################################
+##########################################################################
 if __name__ == "__main__":
     unittest.main()

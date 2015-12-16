@@ -38,6 +38,7 @@ class RabbitMQClient(object):
     """
     Tiny interface into the rabbit http api
     """
+
     def __init__(self, host, user, password, timeout=5):
         self.base_url = 'http://%s/api/' % host
         self.timeout = timeout
@@ -133,7 +134,8 @@ class RabbitMQCollector(diamond.collector.Collector):
             for metric in health_metrics:
                 self.publish('health.{0}'.format(metric), node_data[metric])
             if self.config['cluster']:
-                self.publish('cluster.partitions', len(node_data['partitions']))
+                self.publish('cluster.partitions',
+                             len(node_data['partitions']))
                 content = client.get_nodes()
                 self.publish('cluster.nodes', len(content))
         except Exception, e:
@@ -144,8 +146,8 @@ class RabbitMQCollector(diamond.collector.Collector):
         self.collect_health()
         matchers = []
         if self.config['queues_ignored']:
-                for reg in self.config['queues_ignored'].split():
-                    matchers.append(re.compile(reg))
+            for reg in self.config['queues_ignored'].split():
+                matchers.append(re.compile(reg))
         try:
             client = RabbitMQClient(self.config['host'],
                                     self.config['user'],
@@ -157,9 +159,9 @@ class RabbitMQCollector(diamond.collector.Collector):
                 legacy = True
 
                 if 'queues' in self.config:
-                    self.config['vhosts'] = {"*": self.config['queues']}
+                    vhost_conf = {"*": self.config['queues']}
                 else:
-                    self.config['vhosts'] = {"*": ""}
+                    vhost_conf = {"*": ""}
 
             # Legacy configurations, those that don't include the [vhosts]
             # section require special care so that we do not break metric
@@ -177,16 +179,17 @@ class RabbitMQCollector(diamond.collector.Collector):
                                 'vhosts']['*']
 
                     del self.config['vhosts']["*"]
+                vhost_conf = self.config['vhosts']
 
             # Iterate all vhosts in our vhosts configuration. For legacy this
             # is "*" to force a single run.
-            for vhost in self.config['vhosts']:
+            for vhost in vhost_conf:
                 vhost_name = vhost
                 if self.config['replace_dot']:
                     vhost_name = vhost_name.replace(
                         '.', self.config['replace_dot'])
 
-                queues = self.config['vhosts'][vhost]
+                queues = vhost_conf[vhost]
 
                 # Allow the use of a asterix to glob the queues, but replace
                 # with a empty string to match how legacy config was.
@@ -201,8 +204,8 @@ class RabbitMQCollector(diamond.collector.Collector):
 
                 for queue in client.get_queues(vhost):
                     # If queues are defined and it doesn't match, then skip.
-                    if (queue['name'] not in allowed_queues
-                            and len(allowed_queues) > 0):
+                    if ((queue['name'] not in allowed_queues and
+                         len(allowed_queues) > 0)):
                         continue
                     if matchers and any(
                             [m.match(queue['name']) for m in matchers]):

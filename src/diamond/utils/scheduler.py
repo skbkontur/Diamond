@@ -60,6 +60,9 @@ def collector_process(collector, metric_queue, log):
             time_to_sleep = (next_window + stagger_offset) - time.time()
             if time_to_sleep > 0:
                 time.sleep(time_to_sleep)
+            elif time_to_sleep < 0:
+                # clock has jumped, lets skip missed intervals
+                next_window = time.time()
 
             next_window += interval
 
@@ -105,10 +108,9 @@ def handler_process(handlers, metric_queue, log):
     log.debug('Starting process %s', proc.name)
 
     while(True):
-        metrics = metric_queue.get(block=True, timeout=None)
-        for metric in metrics:
-            for handler in handlers:
-                handler._process(metric)
-
+        metric = metric_queue.get(block=True, timeout=None)
         for handler in handlers:
-            handler._flush()
+            if metric is not None:
+                handler._process(metric)
+            else:
+                handler._flush()
